@@ -2,6 +2,8 @@ import os
 import subprocess
 import socket, socks, requests
 from lxml import html as HTML
+from lxml import etree
+from bs4 import BeautifulSoup
 import time
 
 # Stem is a module for dealing with tor
@@ -29,7 +31,7 @@ from stem.connection import authenticate_none, authenticate_password
 # 		tor --hash-password "mypassword"
 # This will prevent any attackers from sending signals to your tor client.
 #
-class TorCrawler():
+class TorCrawler(object):
 	def __init__(self, **kwargs):
 		# Number of requests that have been made since last ip change
 		self.req_i = 0
@@ -47,13 +49,13 @@ class TorCrawler():
 		self.enforce_limit = min(100, kwargs["enforce_limit"]) if "enforce_limit" in kwargs else 3
 
 		# SOCKS params
-		self.tor_port = 9050
-		self.tor_host = 'localhost'
+		self.tor_port = kwargs["socks_port"] if "socks_port" in kwargs else 9050
+		self.tor_host = kwargs["socks_host"] if "socks_host" in kwargs else 'localhost'
 		# The tor controller that will be used to receive signals
-		self.tor_controller = Controller.from_port(port = 9051)
+		self.ctrl_port = kwargs["ctrl_port"] if "ctrl_port" in kwargs else 9051
+		self.tor_controller = Controller.from_port(port = self.ctrl_port)
 		# The control port password
 		self.ctrl_pass = kwargs["ctrl_pass"] if "ctrl_pass" in kwargs else None
-
 		self.start_socks()
 		self.run_tests()
 
@@ -66,7 +68,9 @@ class TorCrawler():
 	# Parse HTML from a get request
 	def parse_html(self, url):
 		page = requests.get(url)
-		return HTML.fromstring(page.content)
+		return BeautifulSoup(page.content, 'html.parser')
+		
+		
 
 	# This will be called to check on my public (broadcasted) ip via tor
 	def check_ip(self):
@@ -119,29 +123,29 @@ class TorCrawler():
 	def run_tests(self):
 		if self.use_tor:
 			# Check if we are using tor
-			print("Checking that tor is running...")
+			print("\nChecking that tor is running...")
 			tor_html = self.parse_html("https://check.torproject.org")
 			running = tor_html.xpath("//html//title/text()")
 			assert "Congratulations" in running[0], "Tor is not running!"
-		if self.rotate_ips:
-			# Redraw the circuit a few times and hope that at least 2 of the
-			# external IPs are different
-			print("Validating ip rotation...")
-			ips = list()
-			# Define the number of rotations we will attempt.
-			# Note that the testing is different than the actual rotation in
-			# that we really only want to run a small number of tests
-			num_tests = max(3, self.enforce_limit if self.enforce_limit else 49)
-			for i in range(num_tests):
-				ips.append(self.check_ip())
-				self.new_circuit()
-				print(ips)
-			# If we only got one IP, rotation probably isn't working
-			if len(set(ips)) == 1:
-				if self.enforce_rotate:
-					assert False, "WARNING: Your external IP was the same for %s different relay circuits. You may want to make sure tor is running correctly."%num_tests
-				else:
-					print("WARNING: Your external IP was the same for %s different relay circuits. You may want to make sure tor is running correctly."%num_tests)
-			# Set the IP as the last one
-			self.ip = ips[-1]
+		
+			if self.rotate_ips:
+				# Redraw the circuit a few times and hope that at least 2 of the
+				# external IPs are different
+				print("Validating ip rotation...")
+				ips = list()
+				# Define the number of rotations we will attempt.
+				# Note that the testing is different than the actual rotation in
+				# that we really only want to run a small number of tests
+				num_tests = max(3, self.enforce_limit if self.enforce_limit else 49)
+				for i in range(num_tests):
+					ips.append(self.check_ip())
+					self.new_circuit()
+				# If we only got one IP, rotation probably isn't working
+				if len(set(ips)) == 1:
+					if self.enforce_rotate:
+						assert False, "WARNING: Your external IP was the same for %s different relay circuits. You may want to make sure tor is running correctly."%num_tests
+					else:
+						print("WARNING: Your external IP was the same for %s different relay circuits. You may want to make sure tor is running correctly."%num_tests)
+				# Set the IP as the last one
+				self.ip = ips[-1]
 		print("Ready.\n")
