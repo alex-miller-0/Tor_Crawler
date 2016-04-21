@@ -125,8 +125,9 @@ class TorCrawler(object):
 			# Check if we are using tor
 			print("\nChecking that tor is running...")
 			tor_html = self.parse_html("https://check.torproject.org")
-			running = tor_html.xpath("//html//title/text()")
-			assert "Congratulations" in running[0], "Tor is not running!"
+			running = tor_html.find("title").text
+			
+			assert "Congratulations" in running, "Tor is not running!"
 		
 			if self.rotate_ips:
 				# Redraw the circuit a few times and hope that at least 2 of the
