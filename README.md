@@ -1,20 +1,31 @@
 # TorCrawler
 Web crawling with IP rotation a la Tor relay redrawing.
 
-This is a little module that allows you to crawl a website anonymously! Does this website limit requests? Rotate your IP! 
+Sometimes you need to crawl a directory and sometimes that means making a lot of requests. You may want to brute force it and run the risk of getting your IP blacklisted (just go to a coffee shop, right?), but probably not. You probably want to deploy the crawler on an EC2 instance and forget about it. If so, this one's for you.
 
-# Configuring Tor
-Tor configuration is expected to be done outside of this module. Note that this refers to the Tor *client* (i.e. *not* the Tor *browser*. See documentation [here](https://www.torproject.org/docs/documentation.html.en).
+There are lots of good reasons to be crawling websites that don't involve black hat hacking. Maybe the organization quoted $25,000 for a dump of some data that is freely listed on their website (albeit split across thousands of pages). Maybe they don't give out the data, but instead point you to their search engine (challenge accepted). No matter the circumstance, it's probably a good idea to crawl on an IP rotation bot lest your work address get blocked halfway through the task.
 
-Generally, once tor is installed, the configuation file can be found at `/etc/tor/torrc`. SOCKS is configured by default to run on localhost on port 9050, but you can change that if you want. The controller is **not** automatically configured, but the default port is set to 9051 on the line `ControlPort 9051`. Following that line is the parameter `HashedControlPassword`, which I **highly** recommend you set. If you don't, your tor client can be controlled by an attacker unless you have a firewall on port 9051. To generate a tor password, type:
+# Tor
+[Tor](https://www.torproject.org/) is a wonderful piece of software that is freely distributed and allows you to surf the web anonymously. In a nutshell, the protocol draws a route between your computer and the internet. This route (or circuit) is composed of a series of Tor relays (a.k.a. nodes), which are proxy servers running Tor and routing traffic between Tor clients (e.g. your computer) and the internet. Once the circuit is drawn, a request is made from your machine which is encrypted N times, where N is the number of nodes in your circuit. As the request reaches each node, it decrypts the outermost layer of encryption and passes the traffic to the next relay. The final relay makes the request to the server, recieves the response, and shuttles the traffic (again encrypted N times) back along the circuit it came from. This process is sometimes called "onion routing" because each layer of encryption is "peeled back" at each subsequent node, sort of like an onion:
+
+![onion routing](http://www.extremetech.com/wp-content/uploads/2015/07/tor-onion.png)
+
+Once you boot up Tor, it will automatically configure a circuit and your proxy IP will be the last node in the circuit. If you want to use Tor in your every day browsing, you can check out their neat Tor browser, but do keep in mind that there are, as of writing this, only about 7000 Tor nodes in the world and that the point of the network is to, e.g., protect free speech of people in totalitarian regimes so please don't clog up the network by downloading the last season of Game of Thrones (it would be slow anyway). Also note that Tor is technically anonymous browsing, but this definition only strictly refers to a single request. If you are concerned with anonymous browsing, don't use the same circuit to repeatedly Google yourself and log in to your bank account.
+
+## Configuring Tor
+Tor is fairly straightforward to set up and run as a proxy server for web requests. First, [download](https://www.torproject.org/projects/torbrowser.html.en) the Tor browser. This will install Tor alongside the browser (we will only be using the client, not the browser). This guide will assume you are on a UNIX system. The config file is located at `/etc/tor/torrc`. Tor can be started as a service using `service tor start`. Before proceeding, we need to check on two configurations for our crawler:
+
+### SOCKS5
+Our crawler will make requests by proxy through Tor via SOCKS5. By default, Tor will boot running SOCKS5 on `localhost` via `port 9050`. You can change these settings if you need to.
+
+### Tor Controller
+The Tor service can be sent commands via the control port. The command we will use for the crawler is called `NEWNYM`, which tells Tor to redraw the circuit. Note that this does not *always* mean your circuit's exit node will have a new IP (Tor could choose a different route, but keep the exit node in place), so we may need to call NEWNYM multiple times to get a fresh IP. The controller is *not* automatically configured because opening it makes you susceptible to attacks. For this reason, we will only want to open the port once we have a hashed password in place. To generate a tor-compatible hashed password, run:
+
     tor --hash-password mypassword
-And stored the hashed result in your `torrc` file. You will be feeding the plaintext version of this password into TorCrawler.
 
-# Rotating IP
-To draw a new tor circuit, TorCrawler will use a python packaged called [stem](https://stem.torproject.org/) to send the signal `NEWNYM` to your tor client. Note that this does not *ensure* your external IP will be rotated (there is a chance that the final relay node in your circut will be the same). If you want to make sure it changes, set `enforece_rotate=True` and set some integer value to `enforce_limit`. Note that this limit will be capped at 100 redraws as we do not want to kill the tor network with an infinite loop in case something goes wrong. 
+And save the hashed password in your `torrc` file on the line that begins with `HashedControlPassword`. Also be sure to uncomment the line that says `ControlPort 9051`. When sending a command to the tor controller, you will use the plain text version of this hashed password; I recommend saving it as an environmental variable in your bash profile.
 
-
-# TorCrawler Usage
+## TorCrawler Usage
 
 To run TorCrawler, initiliaze a `CrawlerCache` loaded with your URL and an xpath along which we should extract data, e.g.
 
@@ -25,7 +36,7 @@ To run TorCrawler, initiliaze a `CrawlerCache` loaded with your URL and an xpath
     # Spin up the crawler
     crawler = CrawlerCache(ctrl_pass=os.environ["TOR_CONT_PASS"], base_url=base_url, success_xpath=xpath, enforce_rotate=False)
 
-Note that the `base_url` is split on each parameter you pass. `crawl_get` takes an array of params (even if length=1). Iterate through whatever parameters you need and parse the HTML (TorCrawler uses Beautiful Soup):
+Note that the `base_url` is split on each parameter you pass. `crawl_get` takes an array of params (even if length=1). Iterate through whatever parameters you need and parse the HTML (TorCrawler uses Beautiful Soup). Here is an example:
 
     for i in range(5):
         html = crawler.crawl_get([i])
@@ -39,32 +50,30 @@ Note that the `base_url` is split on each parameter you pass. `crawl_get` takes 
             if datum["email"]:
                 crawler.write_datum(datum)
 
-Data is pickled, as are the requests made, so if the crawler stops it can be resumed at the place it left off. Use the following to resume a CrawlerCache:
+Both response data and made requests are pickled so if the crawler stops it can be resumed at the place it left off. Use the following to resume a CrawlerCache:
 
     crawler.load_data()
-    
-# Options
+
+## Options
 `TorCrawler` and `CrawlerCache` objects can be initialized with the following options. Note that only the `CrawlerCache` should be instantiated from your script (since it inherits from `TorCrawler`), but all of these commands can be passsed to `CrawlerCache`, which executes a super call when constructed.
 
 ### TorCrawler Options
-  
+
     # Tor config
     socks_port: <int> (default 9050)                The port tor's socks5 protocol runs out of. Default is 9050 for tor
     socks_host: <str> (default 'localhost')         Your tor host. Default is 'localhost' for tor running locally.
     ctrl_port: <int> (default 9051)                 The port at which tor's controller can be accessed. Default is 9051 for tor
     ctrl_pass: <string> (default None)              (HIGHLY RECOMMENDED) The hashed password for accessing the tor controller
-    
+
     # Crawler config
     n_requests: <int> (default 25)                  Number of consecutive requests that will be made between rotations
     use_tor: <bool> (default True)
     rotate_ips: <bool> (default True)               Ask client to redraw the tor circuit every n_requests
     enforce_rotate: <bool> (default True)           Require the IP change during a rotation cycle (not necessarily enforced: see below)
-    enforce_limit: <int> (default 3, max 100)       Max number of times the circuit is redrawn in a rotation event if 
+    enforce_limit: <int> (default 3, max 100)       Max number of times the circuit is redrawn in a rotation event if
 
 ### CrawlerCache Options
-
     base_url: [<string>, ...]                           The root page of the website you're crawling.
     success_xpath: <string>                             An xpath outlining how to crawl a response HTML page
     data_path: <string> (default "./data.pickle")       Path of the pickled data file
     req_path: <string> (default "./reqs_done.pickle")   Path of the pickled requests dump, i.e. the requests you've completed.
-    csv_path: <string> (default "./data.csv")           Path to which the CSV of the data is written
