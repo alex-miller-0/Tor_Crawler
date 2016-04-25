@@ -1,4 +1,4 @@
-# tor_crawler
+# TorCrawler
 Web crawling with IP rotation a la Tor relay redrawing.
 
 This is a little module that allows you to crawl a website anonymously! Does this website limit requests? Rotate your IP! 
@@ -44,6 +44,7 @@ Data is pickled, as are the requests made, so if the crawler stops it can be res
     crawler.load_data()
     
 # Options
+`TorCrawler` and `CrawlerCache` objects can be initialized with the following options. Note that only the `CrawlerCache` should be instantiated from your script (since it inherits from `TorCrawler`), but all of these commands can be passsed to `CrawlerCache`, which executes a super call when constructed.
 
 ### TorCrawler Options
   
@@ -61,6 +62,7 @@ Data is pickled, as are the requests made, so if the crawler stops it can be res
     enforce_limit: <int> (default 3, max 100)       Max number of times the circuit is redrawn in a rotation event if 
 
 ### CrawlerCache Options
+
     base_url: [<string>, ...]                           The root page of the website you're crawling.
     success_xpath: <string>                             An xpath outlining how to crawl a response HTML page
     data_path: <string> (default "./data.pickle")       Path of the pickled data file
