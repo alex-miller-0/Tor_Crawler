@@ -1,5 +1,5 @@
 # TorCrawler
-Web crawling with IP rotation. TorCrawler is a layer on top of Python's requests module that routes traffic through Tor.
+Requests with IP rotation; TorCrawler is a layer on top of Python's requests module that routes traffic through Tor.
 
 ![onion routing](https://www.tribler.org/img/anonymity3.png)
 
@@ -31,31 +31,17 @@ To start crawling from scratch, make sure you have Tor set up and that you have 
 
 #### Options
 
-    # The port tor's socks5 protocol runs out of. Default is 9050 for tor
-    socks_port: <int> (default 9050)                
-
-    # Your tor host. Default is 'localhost' for tor running locally.
-    socks_host: <str> (default 'localhost')
-
-    # The port at which tor's controller can be accessed. Default is 9051 for tor
-    ctrl_port: <int> (default 9051)
-    # The hashed password for accessing the tor controller
-    ctrl_pass: <string> (default os.environ["TOR_CTRL_PASS"])
-
-    #  Number of consecutive requests that will be made between rotations
-    n_requests: <int> (default 25)
-
-    # Initialize without tor
-    use_tor: <bool> (default True)
-
-    # Ask client to redraw the tor circuit every n_requests
-    rotate_ips: <bool> (default True)
-
-    # Require the IP change during a rotation cycle (not necessarily enforced: see below)
-    enforce_rotate: <bool> (default True)
-
-    # Redraw until IP changes or this number of redraws is performed
-    enforce_limit: <int> (default 3, max 100)
+arg | type | default | description
+ --- | --- | --- | ---
+socks_port | int | 9050 | The port tor's socks5 protocol runs out of.
+ socks_host | str | 'localhost' | Your tor host.
+ ctrl_port | int | 9051 | The port at which tor's controller can be accessed.
+ ctrl_pass | str | os.environ["TOR_CTRL_PASS"] | Plaintext password for accessing controller (hashed password stored in torrc file)
+ n_requests | int | 24 | Number of consecutive requests that will be made between rotations
+use_tor | bool | True | Use Tor when making requests
+rotate_ips | bool | True | Automatically ask client to redraw the tor circuit every n_requests
+enforce_rotate | bool | True | Require the IP change during a rotation cycle
+enforce_limit | int | 3 (max 100) | Redraw until IP changes or this number of redraws is performed
 
 
 <!--You can also do more complicated things with Xpaths and large batches
