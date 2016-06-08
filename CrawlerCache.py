@@ -1,9 +1,8 @@
 from TorCrawler import TorCrawler
-from lxml import etree
 import json
 import pickle
 import os.path
-import numpy as np
+import csv
 # Load this cache to crawl e.g. a directory with TorCrawler.
 # 
 # The idea is that you will set up a directory and a crawl script
@@ -38,6 +37,8 @@ class CrawlerCache(TorCrawler):
 		self.data_path = None
 		# Path to store finished requests
 		self.req_path = None
+		# Path to the csv file
+		self.csv_path = None
 
 		# Base request url; this is actually a list of substrings split
 		# by locations where params are concatenated
@@ -119,9 +120,10 @@ class CrawlerCache(TorCrawler):
 
 	# Load data from file
 	def load_data(self):
-		with open(self.data_path, 'rb+') as f:
-			for d in self.pickleLoadGenerator(f):
-				self.data.append(d)
+		if os.path.isfile(self.req_path):
+			with open(self.data_path, 'rb+') as f:
+				for d in self.pickleLoadGenerator(f):
+					self.data.append(d)
 
 	# Filter out redundant data
 	# First, convert self.data (a list of dicts) to a list of hashable objects (strings)
@@ -137,22 +139,44 @@ class CrawlerCache(TorCrawler):
 			pickle.dump(datum, f)
 
 
+	# Write the data to a csv
+	def write_csv(self):
+		# First, make sure to clean the data
+		self.clean_data_set()
+		# Next, get the headers for the csv
+		headers = list(map(lambda x: x, self.data[0]))
+
+		with open(self.csv_path, 'w') as f_csv:
+			writer = csv.writer(f_csv)
+			writer.writerow(headers)
+			for r in self.data:
+				row = list(map(lambda k: r[k], headers))
+				writer.writerow(row)
+
+
+
+
+
 	# Make a get query and parse the data
-	def crawl_get(self, params):
-		# Form the URL
-		url = self.form_url(params)
-		
-		# Add the request to the list
-		req = self.add_req_done(params)
+	def crawl_get(self, params, **kwargs):
+		# Form the URL, by default with the params
+		if "url" in kwargs:
+			url = kwargs["url"]
+		else:
+			req_done = self.check_request_done({"params": params})
+			if req_done:
+				return None
+			else:
+				url = self.form_url(params)
+				# Add the request to the list. If it's a repeat it won't be appended.
+				req = self.add_req_done(params)
 
 		# Return a BeautifulSoup object with the data in an html string
 		# Often, this will be a series of <div> elements (wrapped in a single
 		# long html string)
-		soup = self.parse_html(url)
+		soup = self.get(url)
 		return soup
 	
-
-
 
 	# Initialize the cache
 	def boot_cache(self, args):
@@ -164,6 +188,7 @@ class CrawlerCache(TorCrawler):
 		# Set the data and req paths
 		self.data_path = args["data_path"] if "data_path" in args else "./data.pickle"
 		self.req_path = args["req_path"] if "req_path" in args else "./reqs_done.pickle"
+		self.csv_path = args["csv_path"] if "csv_path"  in args else "./data.csv"
 
 		# Set success xpath
 		self.success_xpath = args["success_xpath"] if "success_xpath" in args else "//html//title/text()"

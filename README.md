@@ -3,6 +3,10 @@ Web crawling with IP rotation a la Tor relay redrawing.
 
 Sometimes you need to crawl a directory and sometimes that means making a lot of requests. You may want to brute force it and run the risk of getting your IP blacklisted (just go to a coffee shop, right?), but probably not. You probably want to deploy the crawler on an EC2 instance and forget about it. If so, this one's for you.
 
+# Usage
+**IMPORTANT:** This module will only work with Python 3, due to problems arising from cross-usage of sockets with the stem module.
+
+
 # Tor
 [Tor](https://www.torproject.org/) is a wonderful piece of software that draws a route between your computer and the internet. This route (or circuit) is composed of a series of Tor relays (a.k.a. nodes), which are proxy servers running Tor and routing traffic between Tor clients (e.g. your computer) and the internet. Once the circuit is drawn, a request is made from your machine which is encrypted N times, where N is the number of nodes in your circuit. As the request reaches each node, it decrypts the outermost layer of encryption and passes the traffic to the next relay. The final relay makes the request to the server, recieves the response, and shuttles the traffic (again encrypted N times) back along the circuit it came from. This process is sometimes called "onion routing" because each layer of encryption is "peeled back" at each subsequent node, sort of like an onion:
 
