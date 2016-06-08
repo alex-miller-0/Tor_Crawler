@@ -2,3 +2,5 @@
 *.pyc
 test.py
 crawls/
+
+src/CrawlerCache.py
