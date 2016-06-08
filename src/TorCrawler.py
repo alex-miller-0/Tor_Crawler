@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import time
 import warnings
 import os
+from collections import defaultdict
 
 # Stem is a module for dealing with tor
 from stem import Signal
@@ -40,6 +41,7 @@ class TorCrawler(object):
     def __init__(
         self,
         ctrl_port=9051,
+        ctrl_pass=None,
         enforce_limit=3,
         enforce_rotate=True,
         n_requests=25,
@@ -47,8 +49,7 @@ class TorCrawler(object):
         socks_host="localhost",
         rotate_ips=True,
         test_rotate=False,
-        use_tor=True,
-        **kwargs
+        use_tor=True
     ):
         """Set initialization arguments."""
         # Number of requests that have been made since last ip change
@@ -84,7 +85,7 @@ class TorCrawler(object):
 
         # The control port password
         self.ctrl_pass = None
-        self._setCtrlPass(kwargs)
+        self._setCtrlPass(ctrl_pass)
         self._startSocks()
 
         # Keep an IP address logged
@@ -94,9 +95,12 @@ class TorCrawler(object):
         if test_rotate:
             self._runTests()
 
-    def _setCtrlPass(self, kwargs):
-        if "ctrl_pass" in kwargs:
-            self.ctrl_pass = kwargs["ctrl_pass"]
+        # Setup URL-xpath lookup
+        self.xpaths = defaultdict(str)
+
+    def _setCtrlPass(self, p):
+        if p:
+            self.ctrl_pass = p
         elif "TOR_CTRL_PASS" in os.environ:
             self.ctrl_pass = os.environ["TOR_CTRL_PASS"]
 
@@ -229,3 +233,14 @@ class TorCrawler(object):
             self.rotate()
             self.req_i = 0
         return res
+
+    def addXPath(self, url, xpath):
+        """
+        Associate an xpath with a url.
+
+        Whenever a request is made to that url, it will parse the HTML
+        using the provided xpath as a template. Both arguments are required.
+
+        If the URL is already provided, overwrite the xpath.
+        """
+        self.xpaths[url] = xpath
