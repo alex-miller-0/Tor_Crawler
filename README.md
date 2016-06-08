@@ -28,7 +28,7 @@ To start crawling from scratch, make sure you have Tor set up and that you have 
     >>> '121.150.155.19'
 
 
-You can also do more complicated things with Xpaths and large batches
+<!--You can also do more complicated things with Xpaths and large batches
 of requests.
 
 **TODO** merge CrawlerCache with TorCrawler.
@@ -59,7 +59,7 @@ Note that the `base_url` is split on each parameter you pass. `crawl_get` takes 
 Both response data and made requests are pickled so if the crawler stops it can be resumed at the place it left off. Use the following to resume a CrawlerCache:
 
     crawler.load_data()
-
+-->
 # Tor Background
 [Tor](https://www.torproject.org/) draws a route between your computer and the internet. This route (or circuit) is composed of a series of Tor relays (a.k.a. nodes), which are proxy servers running Tor and routing traffic between Tor clients (e.g. your computer) and the internet. Once the circuit is drawn, a request is made from your machine which is encrypted N times, where N is the number of nodes in your circuit. As the request reaches each node, it decrypts the outermost layer of encryption and passes the traffic to the next relay. The final relay makes the request to the server, recieves the response, and shuttles the traffic (again encrypted N times) back along the circuit it came from. This process is sometimes called "onion routing" because each layer of encryption is "peeled back" at each subsequent node, sort of like an onion.
 
