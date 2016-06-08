@@ -1,5 +1,5 @@
 # TorCrawler
-Web crawling with IP rotation a la Tor relay redrawing.
+Web crawling with IP rotation. TorCrawler is a layer on top of Python's requests module that routes traffic through Tor.
 
 ![onion routing](https://www.tribler.org/img/anonymity3.png)
 

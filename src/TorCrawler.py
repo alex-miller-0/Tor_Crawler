@@ -17,12 +17,17 @@ from stem.connection import authenticate_none, authenticate_password
 
 class TorCrawler(object):
     """
+    TorCrawler is a layer on top of the requests module.
+
+    Description:
+    ------------
     This is a webcrawler that utilizes a Tor client through SOCKS5.
 
     By default, tor runs SOCKS5 through port 9050 on localhost
     Note that the config file for tor can be found in /etc/tor/torrc
     Before using this, the user must have tor installed and it must be
-    running (e.g. using service tor start)
+    running (e.g. using service tor start).
+
     If rotation is turned on, this client will require the control port
     in tor to be open so that it can send a NEWNYM signal to it, which
     draws a new relay route. Note that in order to send a signal, this client
@@ -36,6 +41,44 @@ class TorCrawler(object):
         tor --hash-password "mypassword"
 
     This will prevent any attackers from sending signals to your tor client.
+
+    By default, this will set controller password as your environmental
+    variable called "TOR_CTRL_PASS", but you can overwrite this by passing
+    ctrl_pass=<your plaintext password>.
+
+    Arguments:
+    ----------
+    # Ports and host
+    ctrl_port=9051,
+    socks_port=9050,
+    socks_host="localhost",
+
+    # The controller password (str)
+    # Defaults to os.environ["TOR_CTRL_PASS"]
+    ctrl_pass=None,
+
+    # The threshold at which we can stop trying to rotate IPs and accept
+    # the new path. This value is capped at 100 because we don't want to
+    # kill the tor network.
+    enforce_limit=3,
+
+    # Enforce rotation of IPs (if true, redraw circuit until IP is changed)
+    enforce_rotate=True,
+
+    # The number of consecutive requests made with the same IP.
+    n_requests=25,
+
+    # Automatically rotate IPs.
+    rotate_ips=True,
+
+    # Upon initialization, test that IP rotation works.
+    test_rotate=False,
+
+    # Use BeautifulSoup to parse HTML
+    use_bs=True,
+
+    # Use Tor when making requests
+    use_tor=True
     """
 
     def __init__(
@@ -49,6 +92,7 @@ class TorCrawler(object):
         socks_host="localhost",
         rotate_ips=True,
         test_rotate=False,
+        use_bs=True,
         use_tor=True
     ):
         """Set initialization arguments."""
@@ -83,6 +127,9 @@ class TorCrawler(object):
         if self.use_tor:
             self._setTorController()
 
+        # Use BeautifulSoup to parse html GET requests
+        self.use_bs = use_bs
+
         # The control port password
         self.ctrl_pass = None
         self._setCtrlPass(ctrl_pass)
@@ -95,10 +142,8 @@ class TorCrawler(object):
         if test_rotate:
             self._runTests()
 
-        # Setup URL-xpath lookup
-        self.xpaths = defaultdict(str)
-
     def _setCtrlPass(self, p):
+        """Set password for controller signaling."""
         if p:
             self.ctrl_pass = p
         elif "TOR_CTRL_PASS" in os.environ:
@@ -130,7 +175,7 @@ class TorCrawler(object):
 
             # Check if we are using tor
             print("\nChecking that tor is running...")
-            tor_html = self.parse_html("https://check.torproject.org")
+            tor_html = self._checkConvert("https://check.torproject.org")
             running = tor_html.find("title").text
 
             assert "Congratulations" in running, "Tor is not running!"
@@ -191,14 +236,20 @@ class TorCrawler(object):
             authenticate_none(self.tor_controller)
         self.tor_controller.signal(Signal.NEWNYM)
 
-    def parse_html(self, url):
-        """Parse HTML from a get request."""
-        try:
-            page = requests.get(url)
+    def _checkConvert(self, url, headers=None):
+        """Check if we need to return a BeautifulSoup object (or raw res)."""
+        page = requests.get(url, headers=headers)
+        if self.use_bs:
             return BeautifulSoup(page.content, 'html.parser')
-        except requests.exceptions.Timeout as err:
-            print("WARNING: Request failed: {}".format(err))
-            return None
+        else:
+            return page
+
+    def _updateCount(self):
+        """Increment counter and check if we need to rotate."""
+        self.req_i += 1
+        if self.req_i > self.n_requests and self.enforce_rotate:
+            self.rotate()
+            self.req_i = 0
 
     def check_ip(self):
         """Check my public IP via tor."""
@@ -224,23 +275,14 @@ class TorCrawler(object):
                 print("IP successfully rotated. New IP: {}".format(self.ip))
                 break
 
-    def get(self, url):
-        """Return HTML from a webpage requested via GET."""
-        res = self.parse_html(url)
-        # Increment counter and check if we need to rotate
-        self.req_i += 1
-        if self.req_i > self.n_requests and self.enforce_rotate:
-            self.rotate()
-            self.req_i = 0
+    def get(self, url, headers=None):
+        """Return either BeautifulSoup object or raw response from GET."""
+        res = self._checkConvert(url, headers)
+        self._updateCount()
         return res
 
-    def addXPath(self, url, xpath):
-        """
-        Associate an xpath with a url.
-
-        Whenever a request is made to that url, it will parse the HTML
-        using the provided xpath as a template. Both arguments are required.
-
-        If the URL is already provided, overwrite the xpath.
-        """
-        self.xpaths[url] = xpath
+    def post(self, url, data, headers=None):
+        """Return raw response from POST request."""
+        res = requests.post(url, data=data, headers=headers)
+        self._updateCount()
+        return res

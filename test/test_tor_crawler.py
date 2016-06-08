@@ -9,10 +9,11 @@ import sys
 import os
 import pytest
 import subprocess
+import requests
+import bs4
+import time
 sys.path.append("./../src")
 from TorCrawler import TorCrawler
-import time
-
 
 def startTor():
     subprocess.call(["sudo service tor start"], shell=True)
@@ -68,3 +69,18 @@ def test_auto_redraw():
     for i in range(4):
         TOR_CRAWLER.get("http://google.com")
     assert old_ip != TOR_CRAWLER.check_ip(), "Auto rotation failed."
+
+def test_bs():
+    TOR_CRAWLER.use_bs = True
+    r = TOR_CRAWLER.get("http://google.com")
+    assert type(r) == bs4.BeautifulSoup
+
+def test_no_bs():
+    TOR_CRAWLER.use_bs = False
+    r = TOR_CRAWLER.get("http://google.com")
+    assert type(r) == requests.models.Response
+
+def test_post():
+    fakedata = {"Key":"test", "Sign":"test"}
+    r = TOR_CRAWLER.post("https://poloniex.com/tradingApi", fakedata)
+    assert type(r) == requests.models.Response
