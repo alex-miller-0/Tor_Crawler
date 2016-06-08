@@ -1,7 +1,7 @@
 # TorCrawler
 Web crawling with IP rotation a la Tor relay redrawing.
 
-![onion routing](http://www.extremetech.com/wp-content/uploads/2015/07/tor-onion.png)
+![onion routing](https://www.tribler.org/img/anonymity3.png)
 
 Sometimes you need to crawl a big directory and sometimes that means making a lot of requests. You may want to brute force it and run the risk of getting your IP blacklisted (just go to a coffee shop, right?), but probably not. You probably just want to deploy your crawler on an cloud instance and forget about it. If so, this one's for you.
 
