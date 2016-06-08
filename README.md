@@ -6,7 +6,7 @@ Web crawling with IP rotation a la Tor relay redrawing.
 Sometimes you need to crawl a big directory and sometimes that means making a lot of requests. You may want to brute force it and run the risk of getting your IP blacklisted (just go to a coffee shop, right?), but probably not. You probably just want to deploy your crawler on an cloud instance and forget about it. If so, this one's for you.
 
 # Usage
-**IMPORTANT:** This module will only work with Python 3 due to problems arising from cross-usage of sockets with the stem module.
+**IMPORTANT:** *This module will only work with Python 3 due to problems arising from cross-usage of sockets. In the same vein, instantiating multiple instances of TorCrawler leads to SOCKS failure because the port is already being used. So for now, you should only create one instance and use Python 3.*
 
 To start crawling from scratch, make sure you have Tor set up and that you have it configured properly (see below section called "Configuring Tor"). Once you do, boot it up and then load a `TorCrawler` instance.
 
