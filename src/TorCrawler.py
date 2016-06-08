@@ -55,7 +55,7 @@ class TorCrawler(object):
         self.req_i = 0
 
         # The number of consecutive requests made with the same IP.
-        self.num_requests_with_ip = n_requests
+        self.n_requests = n_requests
 
         # Do we want to use tor?
         self.use_tor = use_tor
@@ -88,7 +88,7 @@ class TorCrawler(object):
         self._startSocks()
 
         # Keep an IP address logged
-        self.ip = None
+        self.ip = self.check_ip()
 
         # If we want to make sure IP rotation is working
         if test_rotate:
@@ -225,7 +225,7 @@ class TorCrawler(object):
         res = self.parse_html(url)
         # Increment counter and check if we need to rotate
         self.req_i += 1
-        if self.req_i > self.num_requests_with_ip and self.enforce_rotate:
+        if self.req_i > self.n_requests and self.enforce_rotate:
             self.rotate()
             self.req_i = 0
         return res

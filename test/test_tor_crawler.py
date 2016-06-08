@@ -53,7 +53,7 @@ def test_setup():
     # Boot Tor
     startTor()
     time.sleep(1)
-    c4 = TorCrawler(test_rotate=True)
+    c4 = TorCrawler(test_rotate=True, n_requests=3)
 
     global TOR_CRAWLER
     TOR_CRAWLER = c4
@@ -62,3 +62,9 @@ def test_new_circuit():
     old_ip = TOR_CRAWLER.ip
     TOR_CRAWLER.rotate()
     assert old_ip != TOR_CRAWLER.check_ip(), "IP rotation failed."
+
+def test_auto_redraw():
+    old_ip = TOR_CRAWLER.ip
+    for i in range(4):
+        TOR_CRAWLER.get("http://google.com")
+    assert old_ip != TOR_CRAWLER.check_ip(), "Auto rotation failed."

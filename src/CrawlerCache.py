@@ -1,10 +1,31 @@
+"""
+TODO: This will get migrated to TorCrawler.
+.
+.
+.
+.
+. so
+. you
+. don't
+. need
+. to
+. read
+. any
+. further
+.
+.
+.
+.
+"""
+
+
 from TorCrawler import TorCrawler
 import json
 import pickle
 import os.path
 import csv
 # Load this cache to crawl e.g. a directory with TorCrawler.
-# 
+#
 # The idea is that you will set up a directory and a crawl script
 # which will iterate through a bunch of combinations of requests
 # and from each request will build a set of data entries.
@@ -12,7 +33,7 @@ import csv
 # combinations of two characters for first and last name and process
 # the hits. As you go along, only add unique people to the set and
 # save it between requests.
-# 
+#
 # This will also save the requests you've made so if you need to kill
 # the process, you will not lose your place
 class CrawlerCache(TorCrawler):
@@ -48,7 +69,7 @@ class CrawlerCache(TorCrawler):
 		self.boot_cache(kwargs)
 
 
-	# Form a request url given n substrings in a base url and n-1 params 
+	# Form a request url given n substrings in a base url and n-1 params
 	# Note: base url may contain an empty string at the end
 	def form_url(self, params):
 		assert len(params) == len(self.base_url)-1, "Incorrect number of params in request. URL should have %s params."%(len(self.base_url)-1)
@@ -66,12 +87,12 @@ class CrawlerCache(TorCrawler):
 		data = list()
 		check = kwargs["check"] if "check" in kwargs else None
 		while True:
-			try: 
+			try:
 				# Load each line of the pickle file
 				datum = pickle.load(f)
 				# If we want to check for an existing datum and we find it, return None
 				if check:
-					if datum["params"] == check["params"]: 
+					if datum["params"] == check["params"]:
 						return None
 				data.append(datum)
 			except EOFError as err:
@@ -112,7 +133,7 @@ class CrawlerCache(TorCrawler):
 		return None
 
 
-	# Add a set of params to a list of requests made 
+	# Add a set of params to a list of requests made
 	def add_req_done(self, params):
 		self.req_done.append(params)
 		return self.save_req_done({"params": params})
@@ -176,7 +197,7 @@ class CrawlerCache(TorCrawler):
 		# long html string)
 		soup = self.get(url)
 		return soup
-	
+
 
 	# Initialize the cache
 	def boot_cache(self, args):
@@ -184,7 +205,7 @@ class CrawlerCache(TorCrawler):
 		assert "base_url" in args, "You must include a base url which is a list of substrings."
 		assert len(args["base_url"]), "Base url is empty."
 		self.base_url = args["base_url"]
-		
+
 		# Set the data and req paths
 		self.data_path = args["data_path"] if "data_path" in args else "./data.pickle"
 		self.req_path = args["req_path"] if "req_path" in args else "./reqs_done.pickle"
@@ -193,4 +214,3 @@ class CrawlerCache(TorCrawler):
 		# Set success xpath
 		self.success_xpath = args["success_xpath"] if "success_xpath" in args else "//html//title/text()"
 		self.fail_xpaths = args["fail_xpaths"] if "fail_xpaths" in args else list()
-
