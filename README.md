@@ -17,7 +17,7 @@ To start crawling from scratch, make sure you have Tor set up and that you have 
     crawler.ip
     >>> '113.10.95.15'
 
-    # Make a GET request (returns a BeautifulSoup object)
+    # Make a GET request (returns a BeautifulSoup object unless use_bs=False)
     data = crawler.get("http://somewebsite.com")
     data
     >>> <!DOCTYPE doctype html>...
@@ -33,15 +33,16 @@ To start crawling from scratch, make sure you have Tor set up and that you have 
 
 arg | type | default | description
  --- | --- | --- | ---
-socks_port | int | 9050 | The port tor's socks5 protocol runs out of.
- socks_host | str | 'localhost' | Your tor host.
- ctrl_port | int | 9051 | The port at which tor's controller can be accessed.
- ctrl_pass | str | os.environ["TOR_CTRL_PASS"] | Plaintext password for accessing controller (hashed password stored in torrc file)
- n_requests | int | 24 | Number of consecutive requests that will be made between rotations
-use_tor | bool | True | Use Tor when making requests
-rotate_ips | bool | True | Automatically ask client to redraw the tor circuit every n_requests
-enforce_rotate | bool | True | Require the IP change during a rotation cycle
-enforce_limit | int | 3 (max 100) | Redraw until IP changes or this number of redraws is performed
+socks_port | int | 9050 | Port on which Tor is running a proxy server.
+ socks_host | str | 'localhost' | Your Tor host.
+ ctrl_port | int | 9051 | The port at which Tor's controller can be accessed.
+ ctrl_pass | str | os.environ["TOR_CTRL_PASS"] | Plaintext password for accessing controller (hashed password stored in your `torrc` file).
+ n_requests | int | 24 | Number of consecutive requests that will be made between rotations.
+ use_bs | bool | True | Return `BeautifulSoup` objects from your GET requests. `False` returns `requests` objects instead.
+use_tor | bool | True | Use Tor when making requests.
+rotate_ips | bool | True | Automatically ask client to redraw the Tor circuit every `n_requests`.
+enforce_rotate | bool | True | Requires your IP to change when rotating.
+enforce_limit | int | 3 (max 100) | Redraw until IP changes or this number of redraws is performed.
 
 
 <!--You can also do more complicated things with Xpaths and large batches
