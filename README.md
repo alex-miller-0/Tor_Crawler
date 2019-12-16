@@ -1,4 +1,7 @@
 # TorCrawler
+
+> This project is not maintained and was intended mainly for learning purposes. Use at your discretion and feel free to fork!
+
 Requests with IP rotation; TorCrawler is a layer on top of Python's requests module that routes traffic through Tor.
 
 ![onion routing](https://www.tribler.org/img/anonymity3.png)
